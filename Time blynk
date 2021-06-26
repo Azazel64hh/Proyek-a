@@ -1,0 +1,96 @@
+// Real Time Clock (RTC) reading from Blynk server By Solarduino 
+
+// Note Summary
+// Note :  Safety is very important when dealing with electronic and electricity. We take no responsibilities while you do it at your own risk.
+// Note :  This is an example how we can get the Real Time Clock information from Blynk server for our nodeMCU projects. 
+// Note :  This Code obtain Time values including Second, Minute, Hour, Day, Month, and Year.
+// Note :  The value shown in Blynk App shall be refresh every second.
+// Note :  You need to install related libraries to your nodeMCU. For more information, kindly read through my blog page here : https://solarduino.com/how-to-get-real-time-cloak-from-blynk-app-without-rtc-module-for-nodemcu/
+// Note :  The code is modified from Github & Blynk library Sample Code. 
+// Note :  Solarduino only amend necessary code for easy understanding.
+
+/*/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/////////////*/
+
+    
+        /* 1- Blynk Server and Wifi Connection */
+        
+        #include <ESP8266WiFi.h>                                /* Enable the use of wifi module. Make sure you downloaded and installed the ESP8266 library*/
+        #include <BlynkSimpleEsp8266.h>                         /* Code for talking with Blynk*/
+        char auth[] = "1p6J2LIT0aO7-CCAQfH1oUlbliSf3evN";       // Put in the Auth Token for the project from Blynk. You should receive it in your email.
+        char ssid[] = "Aneka Mesin";                    // Key in your wifi name. You can check with your smart phone for your wifi name
+        char pass[] = "T4n99uHAmeSiN@146";                               // Key in your wifi password.
+        #include <TimeLib.h>                                    /* Program code related to Real Time Clock (RTC). */
+        #include <WidgetRTC.h>                                  /* Communication code with Blynk Real Time Clock Widget */
+        BlynkTimer timer;                                       /* Define parameter for Blynk Timer */
+        WidgetRTC rtc;                                          /* Define parameter for RTC Widget */
+
+        /* 2- Display refresh*/
+        
+        unsigned long startMillis;                              /* start counting time for display refresh*/
+        unsigned long currentMillis;                            /* current counting time for display refresh */
+        const unsigned long period = 1000;                      // refresh every X seconds (in seconds) Default 60000 = 1 minute 
+
+       
+
+BLYNK_CONNECTED()                                               /* When Blynk server is connected, initiate Real Time Clock function */
+{ rtc.begin(); }
+
+void setup()
+{
+  
+  /* 0 - General */
+  
+  Serial.begin(9600);                                           /* Initiate the Serial Monitor function */
+  pinMode(2,OUTPUT);                                            /* Declare the Output Pin D4 (GPIO 2) as an output pin for LED Light*/
+  
+  /* 1- Blynk Server and Wifi Connection */
+  
+  setSyncInterval(1);                                           /* Synchronise or read time from the Blynk Server every 1 second */
+  Blynk.begin(auth,ssid,pass);                                  /* Initiate the Blynk server login for the specific project*/
+  while (Blynk.connect() == false ) {}                          /* If the Blynk Server not yet connected to nodeMCU, keep waiting here */
+  setSyncInterval(10*60);                                       /* After successful login, change Synchornise Time reading for every 10 minute (Do not need to always check for the time)*/
+  
+  /* 2- Display refresh*/
+  
+  startMillis = millis();                                       /* Start record initial time for display refresh */
+}
+
+
+void loop()
+{
+  
+  /* 1- Blynk Server and Wifi Connection */
+  
+  Blynk.run();                                                                    /* allow the communication between Blynk server and Node MCU*/ 
+  timer.run();                                                                    /* allow the Blynk timer to keep counting */
+
+  /* 2- Display refresh*/
+
+  currentMillis = millis();                                                       /* Keep counting time for display refresh */
+  if(currentMillis - startMillis > period)                                        /* For every 1 second, run the set of code*/
+  {
+    String currentTime = String(hour()) + ":" + minute() + ":" + second();        /* Define "currentTime" by combining hour, minute and second */
+    String currentDate = String(day()) + " " + month() + " " + year();            /* Define "currentDate" by combining day, month, and year */
+    Serial.print("Current time: ");                                               /* Display values on Serial Monitor */
+    Serial.print(currentTime);
+    Serial.print(" ");
+    Serial.print(currentDate);
+    Serial.println();
+
+    Blynk.virtualWrite(V1, currentTime);                                          /* Send Time parameters to Virtual Pin V1 on Blynk App */
+    Blynk.virtualWrite(V2, currentDate);                                          /* Send Date parameters to Virtual Pin V2 on Blynk App */
+    
+    int getSecond = second();                                                     /* Assign "getHour" as the hour now */
+    if (getSecond == 1)
+    { Blynk.virtualWrite(V3,"reset");int i=0;
+    for (int i = 0; i < 512; i++) {
+    Blynk.virtualWrite(V4,"reset");
+  }
+    }                                                     /* Turn OFF the LED if seconds count is more than 30 */                                                     /* Turn ON the LED if the seconds count is less than 30 */                                                 
+    else{
+      Blynk.virtualWrite(V3,"ready");i=600;
+    }
+    
+    startMillis = millis();                                                       /* Reset time for the next counting cycle */
+  }
+}
